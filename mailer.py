@@ -39,7 +39,7 @@ def retrieve_matching_rows():
     conn = connect_database()
     # querying the database for rows where IS_DONE is set to false
     cursor = conn.cursor()
-    query = "SELECT * FROM calibration WHERE CURDATE() > DATE_SUB(LAST_DUE, INTERVAL 10 DAY)"
+    query = "SELECT * FROM calibration WHERE CURDATE() > DATE_SUB(NEXT_DUE, INTERVAL 10 DAY) AND DONE_ON = '0000-00-00'"
     print(f"Executing query: {query}")
     cursor.execute(query)
     print("Query executed.")
@@ -55,8 +55,8 @@ def retrieve_matching_rows():
 def construct_email(receiver_email, receiver_name, item, code, area, status):
     smtp_server = 'smtp.gmail.com'
     port = 587 # for starttls
-    sender_email = 'abc@gmail.com'
-    sender_password = 'app-specific_password_here'
+    sender_email = 'xyz@gmail.com' #enter ur email
+    sender_password = 'abc' #enter app specific password
 
     subject = 'Calibration Reminder'
     body = f"Dear {receiver_name},\n\nThis is a reminder that calibration of {item}, Instrument Code: {code}, in {area} is {status}.\n" \
@@ -77,18 +77,16 @@ def send_reminders():
     rows = retrieve_matching_rows()
     recipients = retrieve_email_recipients()
     for row in rows:
-        if not row[12]:
-            # getting the current date
-            current_date = datetime.date.today()
-            status = 'PENDING'
-            if row[11] < current_date:
-                status = 'OVERDUE'
-            receiver_name = 'Sir/Mam'
-            item = row[3]
-            code = row[5]
-            area = row[2]
-            for receiver_email in recipients:
-                construct_email(receiver_email, receiver_name, item, code, area, status)
+        current_date = datetime.date.today()
+        status = 'PENDING'
+        if row[12] < current_date: #row[12] is NEXT_DUE date
+            status = 'OVERDUE'
+        receiver_name = 'Sir/Mam'
+        item = row[4]
+        code = row[6]
+        area = row[3]
+        for receiver_email in recipients:
+            construct_email(receiver_email, receiver_name, item, code, area, status)            
 
 send_reminders()
 
